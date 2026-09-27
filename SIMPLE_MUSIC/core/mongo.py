@@ -1,25 +1,67 @@
-# -----------------------------------------------
-# 🔸 SIMPLE MUSIC Project
-# 🔹 Developed & Maintained by: Simple Boy (https://github.com/Simple-Boy-1k)
-# 📅 Copyright © 2026 – All Rights Reserved
-#
-# 📖 License:
-# This source code is open for educational and non-commercial use ONLY.
-# You are required to retain this credit in all copies or substantial portions of this file.
-# Commercial use, redistribution, or removal of this notice is strictly prohibited
-# without prior written permission from the author.
-#
-# ❤️ Made with dedication and love by Simple_Boy_1k
-# -----------------------------------------------
-from motor.motor_asyncio import AsyncIOMotorClient
-from config import MONGO_DB_URI
+import os
+
+from motor.motor_asyncio import AsyncIOMotorClient as _mongo_client_
+from pymongo import MongoClient
+
+import config
+
 from ..logging import LOGGER
 
-LOGGER(__name__).info("Connecting to your Mongo Database...")
+
+# ---------------------------------------------------------
+# Get MongoDB URI
+# ---------------------------------------------------------
+
+MONGO_URI = (
+    getattr(config, "MONGO_DB_URI", None)
+    or os.getenv("MONGO_DB_URI")
+    or ""
+).strip()
+
+
+# ---------------------------------------------------------
+# Validate MongoDB URI
+# ---------------------------------------------------------
+
+if not MONGO_URI:
+    LOGGER(__name__).error(
+        "MONGO_DB_URI is missing or empty. "
+        "Please add MONGO_DB_URI to Heroku Config Vars."
+    )
+
+    raise RuntimeError(
+        "MONGO_DB_URI is missing or empty."
+    )
+
+
+# ---------------------------------------------------------
+# Connect to MongoDB
+# ---------------------------------------------------------
+
 try:
-    _mongo_async_ = AsyncIOMotorClient(MONGO_DB_URI)
+
+    _mongo_async_ = _mongo_client_(
+        MONGO_URI,
+        serverSelectionTimeoutMS=10000,
+    )
+
+    _mongo_sync_ = MongoClient(
+        MONGO_URI,
+        serverSelectionTimeoutMS=10000,
+    )
+
+    # Database name
     mongodb = _mongo_async_.Anon
-    LOGGER(__name__).info("Connected to your Mongo Database.")
-except:
-    LOGGER(__name__).error("Failed to connect to your Mongo Database.")
-    exit()
+    pymongodb = _mongo_sync_.Anon
+
+    LOGGER(__name__).info(
+        "MongoDB client initialized successfully."
+    )
+
+except Exception as e:
+
+    LOGGER(__name__).error(
+        f"MongoDB connection initialization failed: {e}"
+    )
+
+    raise
